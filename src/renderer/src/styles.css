@@ -55,9 +55,10 @@ body {
   font-size: 13.5px;
   overflow: hidden;
   user-select: none;
+  /* Translucent material so the native window vibrancy shows through. */
   background:
-    radial-gradient(1100px 560px at 50% -12%, rgb(var(--glow) / var(--glow-strength)), transparent 62%),
-    rgb(var(--surface));
+    radial-gradient(1100px 560px at 42% -12%, rgb(var(--glow) / var(--glow-strength)), transparent 62%),
+    linear-gradient(rgb(var(--surface) / 0.7), rgb(var(--surface) / 0.78));
 }
 
 ::-webkit-scrollbar {

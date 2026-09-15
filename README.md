@@ -9,9 +9,17 @@ resolves it to structured print options, and the app turns those into an **exact
 command that you approve before anything is sent to the printer**.
 
 <p align="center">
-  <img src="docs/onboarding.png" width="49%" alt="Onboarding — bring your own AI engine" />
-  <img src="docs/print-dark.png" width="49%" alt="Natural-language print command bar" />
+  <img src="docs/studio-demo.png" width="90%" alt="Cursor for Printers — chat on the right, visual printer stage on the left" />
 </p>
+<p align="center">
+  <img src="docs/studio-demo-light.png" width="49%" alt="Light theme" />
+  <img src="docs/onboarding.png" width="49%" alt="Onboarding — bring your own AI engine" />
+</p>
+
+A **chat column** (Cursor-style) on the right; the rest is a **visual, animated stage**
+that shows the printer, the document you selected floating above it, the resolved print
+settings as chips, and live printer state. The document animates into the printer when you
+run a job. Native macOS vibrancy, SF Pro, hairline depth — it aims to feel like a SwiftUI app.
 
 ---
 
@@ -41,15 +49,17 @@ natural language  →  AI engine  →  structured options (JSON)  →  determini
 
 - **Onboarding** — auto-detects installed engines (`claude`, `codex`, `grok`) on your
   `PATH`, or add any custom CLI. Test the connection in one click.
-- **Natural-language command bar** — drop a file, describe the job, review the resolved
-  command, run it. Includes example prompts and a copy-to-clipboard command preview.
-- **Printer panel** — lists configured CUPS queues with live status, device URI, and
-  location; set your default printer (per-user, no admin needed).
+- **Chat** — a Cursor-style conversation: attach a file, describe the job, and the engine
+  replies with the resolved command (summary + exact `lp` line + a Run button).
+- **Visual stage** — the printer, the selected document, the resolved settings (copies,
+  duplex, color, pages…) and live state, laid out and animated. Run a job and the sheet
+  feeds into the printer while the status light pulses.
+- **Printer switcher** — pick your printer from the toolbar; that also sets your default
+  (per-user, no admin needed).
 - **Add a printer** — Bonjour/mDNS discovery for AirPrint devices, plus manual add-by-IP
   for driver-only printers. Driver selection is done correctly (see below).
 - **Job queue** — see active jobs across all printers and cancel them; auto-refreshes.
-- **Polish** — light + dark themes, keyboard shortcut (`⌘↵` to interpret), lots of
-  whitespace, Cursor/Linear aesthetic.
+- **Native feel** — macOS vibrancy, light + dark, SF Pro, hairline depth.
 
 ## How printing works (macOS / CUPS)
 
@@ -134,7 +144,13 @@ src/
     exec.ts          execFile wrapper (argv only, PATH-hardened)
     store.ts         config persistence in userData
   preload/           contextBridge API (typed window.api)
-  renderer/          React + Tailwind UI (onboarding, command bar, printers, queue, settings)
+  renderer/          React + Tailwind + framer-motion UI
+    studio.tsx       shared state controller (files, printers, chat, status) via context
+    components/
+      ChatDock.tsx     the Cursor-style chat column
+      Stage.tsx        the visual stage (toolbar, scene, settings chips, state)
+      PrinterScene.tsx animated SVG printer + document + printing animation
+      Onboarding · Settings · AddPrinterModal · QueueModal · toast · ui
 ```
 
 ## Testing the pipeline

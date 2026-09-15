@@ -32,6 +32,10 @@ function maybeCaptureAndQuit(win: BrowserWindow): void {
   if (!shot) return
   setTimeout(async () => {
     try {
+      // The real window is translucent (vibrancy); paint a solid backdrop so the
+      // capture isn't just black behind the frosted material.
+      const bg = process.env.CFP_THEME === 'light' ? '#eceef1' : '#0a0a0e'
+      await win.webContents.insertCSS(`html{background:${bg} !important}`)
       const image = await win.webContents.capturePage()
       await writeFile(shot, image.toPNG())
       // eslint-disable-next-line no-console
@@ -46,14 +50,18 @@ function maybeCaptureAndQuit(win: BrowserWindow): void {
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1140,
-    height: 780,
-    minWidth: 900,
-    minHeight: 620,
+    width: 1180,
+    height: 800,
+    minWidth: 940,
+    minHeight: 640,
     show: false,
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 18, y: 20 },
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0b0b0d' : '#fbfbfa',
+    trafficLightPosition: { x: 18, y: 22 },
+    // Native macOS vibrancy — the window content floats over a real blurred
+    // backdrop, the way a SwiftUI/AppKit app does.
+    vibrancy: 'under-window',
+    visualEffectState: 'active',
+    backgroundColor: '#00000000',
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
@@ -70,7 +78,10 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  const search = process.env.CFP_VIEW ? `view=${process.env.CFP_VIEW}` : ''
+  const params = new URLSearchParams()
+  if (process.env.CFP_VIEW) params.set('view', process.env.CFP_VIEW)
+  if (process.env.CFP_DEMO) params.set('demo', '1')
+  const search = params.toString()
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + (search ? `?${search}` : ''))
   } else {

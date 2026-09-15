@@ -17,6 +17,7 @@
     "package": "electron-vite build && electron-builder --dir"
   },
   "dependencies": {
+    "framer-motion": "^11.18.2",
     "lucide-react": "^0.454.0"
   },
   "devDependencies": {
