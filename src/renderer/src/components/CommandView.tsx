@@ -67,8 +67,8 @@ export function CommandView({
     setDragOver(false)
     const paths: string[] = []
     for (const f of Array.from(e.dataTransfer.files)) {
-      // Electron exposes the absolute path on dropped File objects.
-      const p = (f as unknown as { path?: string }).path
+      // Electron 32+ removed File.path; resolve via webUtils through preload.
+      const p = window.api.files.pathForFile(f)
       if (p) paths.push(p)
     }
     if (paths.length) addFiles(paths)

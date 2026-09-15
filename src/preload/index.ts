@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { IPC } from '../shared/ipc'
 import type {
   AppConfig,
@@ -51,7 +51,16 @@ const api = {
     submit: (resolved: ResolvedCommand): Promise<CommandResult> => ipcRenderer.invoke(IPC.printSubmit, resolved)
   },
   files: {
-    pick: (): Promise<string[]> => ipcRenderer.invoke(IPC.filesPick)
+    pick: (): Promise<string[]> => ipcRenderer.invoke(IPC.filesPick),
+    // Electron 32+ removed File.path; this is the supported way to get an
+    // absolute path for a drag-and-dropped file.
+    pathForFile: (file: unknown): string => {
+      try {
+        return webUtils.getPathForFile(file as never)
+      } catch {
+        return ''
+      }
+    }
   },
   system: {
     openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.openExternal, url)
