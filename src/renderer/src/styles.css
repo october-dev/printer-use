@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: 251 251 250;
+  --panel: 255 255 255;
+  --elevated: 255 255 255;
+  --border: 232 230 224;
+  --ink: 24 24 27;
+  --muted: 106 106 116;
+  --faint: 161 161 170;
+  --accent: 79 70 229;
+  --accent-soft: 238 240 255;
+  --ok: 22 163 74;
+  --warn: 180 130 10;
+  --danger: 220 38 38;
+}
+
+.dark {
+  --surface: 11 11 13;
+  --panel: 19 19 22;
+  --elevated: 28 28 33;
+  --border: 40 40 46;
+  --ink: 244 244 245;
+  --muted: 150 150 160;
+  --faint: 90 90 100;
+  --accent: 129 140 248;
+  --accent-soft: 30 28 58;
+  --ok: 74 222 128;
+  --warn: 234 179 8;
+  --danger: 248 113 113;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: rgb(var(--surface));
+  color: rgb(var(--ink));
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+  font-size: 13.5px;
+  overflow: hidden;
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--faint) / 0.4);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--faint) / 0.7);
+  background-clip: content-box;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* subtle animated skeleton */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgb(var(--faint) / 0.14);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(var(--faint) / 0.18), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
