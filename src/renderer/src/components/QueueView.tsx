@@ -78,19 +78,19 @@ export function QueueView() {
           ))}
         </div>
       ) : jobs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-faint/10 text-muted">
-            <CheckCircle2 size={20} />
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-ok/10 text-ok ring-1 ring-ok/15">
+            <CheckCircle2 size={24} />
           </div>
-          <div className="text-[14px] font-medium">Queue is empty</div>
-          <p className="mt-1 text-[12.5px] text-muted">No active jobs. New print jobs will show up here.</p>
+          <div className="text-[15px] font-medium">All clear</div>
+          <p className="mt-1.5 text-[12.5px] text-muted">No active jobs. New print jobs will show up here.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border bg-panel">
+        <div className="overflow-hidden rounded-2xl border border-border/70 bg-panel/60">
           {jobs.map((job, i) => (
             <div
               key={job.id}
-              className={cx('flex items-center gap-3 px-4 py-3', i > 0 && 'border-t border-border')}
+              className={cx('flex items-center gap-3 px-4 py-3', i > 0 && 'border-t border-border/50')}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-faint/10 text-muted">
                 <FileText size={15} />

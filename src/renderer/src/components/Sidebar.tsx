@@ -22,12 +22,12 @@ export function Sidebar({
   onOpenSettings: () => void
 }) {
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col border-r border-border bg-panel">
+    <aside className="flex w-[216px] shrink-0 flex-col border-r border-border/50 bg-panel/40 backdrop-blur-xl">
       <div className="drag flex h-11 items-center pl-[76px] pr-3" />
-      <div className="no-drag px-3 pb-3">
+      <div className="no-drag px-3 pb-4">
         <div className="flex items-center gap-2 px-2 py-1">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-white shadow-sm">
-            <PrinterIcon size={14} />
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent text-white shadow-sm shadow-accent/30">
+            <PrinterIcon size={13} />
           </div>
           <div className="text-[13px] font-semibold tracking-tight">Cursor for Printers</div>
         </div>
@@ -51,10 +51,10 @@ export function Sidebar({
 
       <div className="flex-1" />
 
-      <div className="no-drag border-t border-border p-3">
+      <div className="no-drag border-t border-border/40 p-3">
         <button
           onClick={onOpenSettings}
-          className="mb-2 flex w-full items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-2 text-left transition hover:border-faint/60"
+          className="mb-1 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition hover:bg-faint/[0.07]"
         >
           <Zap size={14} className={provider?.available ? 'text-accent' : 'text-faint'} />
           <div className="min-w-0 flex-1">

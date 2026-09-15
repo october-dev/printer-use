@@ -73,14 +73,13 @@ export function PrintersView() {
           ))}
         </div>
       ) : printers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-faint/10 text-muted">
-            <PrinterIcon size={20} />
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent ring-1 ring-accent/15">
+            <PrinterIcon size={24} />
           </div>
-          <div className="text-[14px] font-medium">No printers configured</div>
-          <p className="mt-1 max-w-[320px] text-[12.5px] text-muted">
-            Add your printer to start. AirPrint printers are auto-discovered; driver-only printers can be
-            added by IP.
+          <div className="text-[15px] font-medium">No printers yet</div>
+          <p className="mt-1.5 max-w-[300px] text-[12.5px] leading-relaxed text-muted">
+            AirPrint printers are auto-discovered; driver-only printers can be added by IP.
           </p>
           <Button variant="primary" size="sm" className="mt-4" onClick={() => setAddOpen(true)}>
             <Plus size={14} /> Add printer
@@ -89,7 +88,7 @@ export function PrintersView() {
       ) : (
         <div className="flex flex-col gap-2.5">
           {printers.map((p) => (
-            <div key={p.name} className="rounded-xl border border-border bg-panel p-4 transition hover:border-faint/50">
+            <div key={p.name} className="rounded-2xl border border-border/70 bg-panel/60 p-4 transition hover:border-faint/40">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
                   <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-faint/10 text-muted">

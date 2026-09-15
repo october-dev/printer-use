@@ -21,9 +21,8 @@ export function Button({
     md: 'h-9 px-3.5 text-[13px]'
   }
   const variants: Record<ButtonVariant, string> = {
-    primary: 'bg-accent text-white hover:brightness-110 shadow-sm shadow-accent/20',
-    default:
-      'bg-elevated text-ink border border-border hover:border-faint/60 hover:bg-faint/5',
+    primary: 'bg-accent text-white hover:brightness-110 shadow-md shadow-accent/25',
+    default: 'bg-elevated text-ink border border-border/70 hover:border-faint/50 hover:bg-faint/[0.06]',
     ghost: 'text-muted hover:text-ink hover:bg-faint/10',
     subtle: 'bg-faint/10 text-ink hover:bg-faint/20',
     danger: 'bg-danger/10 text-danger hover:bg-danger/20'
@@ -37,7 +36,7 @@ export function Button({
 
 export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={cx('rounded-xl border border-border bg-panel', className)}>{children}</div>
+    <div className={cx('rounded-2xl border border-border/70 bg-panel', className)}>{children}</div>
   )
 }
 
@@ -114,7 +113,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cx(
-        'no-drag w-full rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-faint outline-none transition focus:border-accent/70 focus:ring-2 focus:ring-accent/15',
+        'no-drag w-full rounded-lg border border-border/70 bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-faint outline-none transition focus:border-accent/70 focus:ring-2 focus:ring-accent/15',
         props.className
       )}
     />
@@ -126,7 +125,7 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={cx(
-        'no-drag w-full appearance-none rounded-lg border border-border bg-surface px-3 py-2 text-[13px] text-ink outline-none transition focus:border-accent/70 focus:ring-2 focus:ring-accent/15',
+        'no-drag w-full appearance-none rounded-lg border border-border/70 bg-surface px-3 py-2 text-[13px] text-ink outline-none transition focus:border-accent/70 focus:ring-2 focus:ring-accent/15',
         props.className
       )}
     />
@@ -152,12 +151,12 @@ export function Modal({
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
       <div
         className={cx(
-          'relative w-full rounded-2xl border border-border bg-panel shadow-2xl animate-fade-in',
+          'relative w-full rounded-2xl border border-border/70 bg-panel shadow-2xl animate-fade-in',
           width
         )}
       >
         {title && (
-          <div className="border-b border-border px-5 py-3.5 text-[14px] font-semibold">{title}</div>
+          <div className="border-b border-border/60 px-5 py-3.5 text-[14px] font-semibold">{title}</div>
         )}
         <div className="p-5">{children}</div>
       </div>
