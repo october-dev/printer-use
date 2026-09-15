@@ -15,6 +15,14 @@ export const IPC = {
   printersListDrivers: 'printers:listDrivers',
   printersAdd: 'printers:add',
 
+  printersProbe: 'printers:probe',
+  printersDiagnose: 'printers:diagnose',
+  printersExplain: 'printers:explain',
+  printersEnable: 'printers:enable',
+  printersAccept: 'printers:accept',
+  printersRemove: 'printers:remove',
+  printersTestPage: 'printers:testPage',
+
   jobsList: 'jobs:list',
   jobsCancel: 'jobs:cancel',
   jobsCancelAll: 'jobs:cancelAll',

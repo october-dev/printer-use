@@ -75,6 +75,23 @@ Everything routes through CUPS, the standard macOS print system:
 | Set default       | `lpoptions -d <printer>` (per-user, no `sudo`)                 |
 | Add a queue       | `lpadmin -p <name> -E -v <uri> …`                              |
 
+## Connect & diagnose
+
+<p align="center">
+  <img src="docs/connect.png" width="49%" alt="Connect a printer — auto-scan + add by IP" />
+  <img src="docs/diagnostics.png" width="49%" alt="Diagnostics — reachability, issues, AI troubleshooting, quick fixes" />
+</p>
+
+- **Connect** — auto-scans the network (Bonjour/mDNS), resolves each device's model and
+  capabilities from its TXT record, TCP-probes its print ports to show what's actually
+  reachable, and connects in one click with the right driver. Driver-only printers are
+  added by IP with automatic protocol/driver detection.
+- **Diagnose** — for any printer: a reachability check (per-port TCP probes), CUPS state
+  reasons translated to plain English (paper jam, out of ink, offline, paused…), the queue
+  depth, and one-click fixes (resume, accept jobs, clear queue, print a test page, remove).
+  **Ask your AI engine to explain and fix** feeds the diagnostics to your engine for a
+  plain-English diagnosis — it even knows the Canon G-series lamp/5100 error codes.
+
 ### Add-printer driver logic (important)
 
 Not every printer speaks AirPrint. The app picks the right driver strategy:

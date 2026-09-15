@@ -10,7 +10,9 @@ import {
   Loader2,
   Check,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Activity,
+  Stethoscope
 } from 'lucide-react'
 import { useStudio } from '../studio'
 import { PrinterScene } from './PrinterScene'
@@ -20,10 +22,12 @@ import { cx } from './ui'
 export function Stage({
   onOpenQueue,
   onOpenAddPrinter,
+  onOpenDiagnostics,
   onOpenSettings
 }: {
   onOpenQueue: () => void
   onOpenAddPrinter: () => void
+  onOpenDiagnostics: () => void
   onOpenSettings: () => void
 }) {
   const { printers, selectedPrinter, setPrinter, printerObj, primaryFile, active, status, run, jobs } = useStudio()
@@ -85,7 +89,12 @@ export function Stage({
         )}
 
         <div className="no-drag flex items-center gap-0.5">
-          <ToolbarButton onClick={onOpenAddPrinter} label="Add printer">
+          {printers.length > 0 && (
+            <ToolbarButton onClick={onOpenDiagnostics} label="Diagnostics">
+              <Activity size={16} />
+            </ToolbarButton>
+          )}
+          <ToolbarButton onClick={onOpenAddPrinter} label="Connect a printer">
             <Plus size={16} />
           </ToolbarButton>
           <ToolbarButton onClick={onOpenQueue} label="Queue" badge={jobs.length || undefined}>
@@ -107,6 +116,14 @@ export function Stage({
           <span className="text-[13px] font-medium capitalize text-ink">{stateText}</span>
           {printerObj?.deviceUri && status !== 'printing' && (
             <span className="font-mono text-[11px] text-faint">· {printerObj.deviceUri}</span>
+          )}
+          {printerObj && (stateTone === 'danger' || stateTone === 'warn') && (
+            <button
+              onClick={onOpenDiagnostics}
+              className="ml-1 flex items-center gap-1 rounded-full bg-warn/12 px-2 py-0.5 text-[11px] font-medium text-warn transition hover:bg-warn/20"
+            >
+              <Stethoscope size={11} /> Diagnose
+            </button>
           )}
         </div>
 

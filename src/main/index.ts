@@ -18,8 +18,17 @@ import {
   listModelDrivers
 } from './cups'
 import { discoverPrinters, resolveService } from './discovery'
-import { translate } from './nl'
-import type { AppConfig, Provider, AddPrinterOpts, TranslateContext } from '../shared/types'
+import {
+  diagnose,
+  probeHost,
+  enablePrinter,
+  acceptJobs,
+  removePrinter,
+  printTestPage,
+  buildDiagnosisPrompt
+} from './diagnostics'
+import { translate, extractPlainText } from './nl'
+import type { AppConfig, Provider, AddPrinterOpts, TranslateContext, PrinterDiagnostics } from '../shared/types'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -81,6 +90,7 @@ function createWindow(): void {
   const params = new URLSearchParams()
   if (process.env.CFP_VIEW) params.set('view', process.env.CFP_VIEW)
   if (process.env.CFP_DEMO) params.set('demo', '1')
+  if (process.env.CFP_MODAL) params.set('modal', process.env.CFP_MODAL)
   const search = params.toString()
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + (search ? `?${search}` : ''))
@@ -129,6 +139,19 @@ function registerIpc(): void {
   ipcMain.handle(IPC.printersFindPpds, (_e, hint?: string) => findInstalledPpds(hint))
   ipcMain.handle(IPC.printersListDrivers, (_e, query?: string) => listModelDrivers(query))
   ipcMain.handle(IPC.printersAdd, (_e, opts: AddPrinterOpts) => addPrinter(opts))
+
+  ipcMain.handle(IPC.printersProbe, (_e, host: string) => probeHost(host))
+  ipcMain.handle(IPC.printersDiagnose, (_e, name: string) => diagnose(name))
+  ipcMain.handle(IPC.printersEnable, (_e, name: string) => enablePrinter(name))
+  ipcMain.handle(IPC.printersAccept, (_e, name: string) => acceptJobs(name))
+  ipcMain.handle(IPC.printersRemove, (_e, name: string) => removePrinter(name))
+  ipcMain.handle(IPC.printersTestPage, (_e, name: string) => printTestPage(name))
+  ipcMain.handle(IPC.printersExplain, async (_e, diag: PrinterDiagnostics) => {
+    const provider = await selectedProvider()
+    if (!provider?.available) return { ok: false, error: 'No AI engine connected.' }
+    const res = await runProvider(provider, buildDiagnosisPrompt(diag), 60000)
+    return res.ok ? { ok: true, text: extractPlainText(res.raw) } : { ok: false, error: res.error }
+  })
 
   ipcMain.handle(IPC.jobsList, () => listJobs())
   ipcMain.handle(IPC.jobsCancel, (_e, jobId: string) => cancelJob(jobId))

@@ -6,7 +6,8 @@ import { Onboarding } from './components/Onboarding'
 import { Stage } from './components/Stage'
 import { ChatDock } from './components/ChatDock'
 import { SettingsModal } from './components/Settings'
-import { AddPrinterModal } from './components/AddPrinterModal'
+import { ConnectModal } from './components/ConnectModal'
+import { DiagnosticsModal } from './components/DiagnosticsModal'
 import { QueueModal } from './components/QueueModal'
 import { Spinner } from './components/ui'
 
@@ -26,12 +27,21 @@ function useTheme(theme: AppConfig['theme'] | undefined) {
 }
 
 function AppInner() {
-  const { config, providers, refreshConfig, refreshPrinters } = useStudio()
+  const { config, providers, refreshConfig, selectedPrinter } = useStudio()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [addOpen, setAddOpen] = useState(false)
+  const [connectOpen, setConnectOpen] = useState(false)
+  const [diagnoseOpen, setDiagnoseOpen] = useState(false)
   const [queueOpen, setQueueOpen] = useState(false)
 
   useTheme(config?.theme)
+
+  // Dev-only: open a modal from ?modal=connect|diagnose|queue for screenshots.
+  useEffect(() => {
+    const m = new URLSearchParams(window.location.search).get('modal')
+    if (m === 'connect') setConnectOpen(true)
+    else if (m === 'diagnose') setDiagnoseOpen(true)
+    else if (m === 'queue') setQueueOpen(true)
+  }, [])
 
   if (!config) {
     return (
@@ -58,7 +68,8 @@ function AppInner() {
       <div className="flex h-full w-full overflow-hidden">
         <Stage
           onOpenQueue={() => setQueueOpen(true)}
-          onOpenAddPrinter={() => setAddOpen(true)}
+          onOpenAddPrinter={() => setConnectOpen(true)}
+          onOpenDiagnostics={() => setDiagnoseOpen(true)}
           onOpenSettings={() => setSettingsOpen(true)}
         />
         <ChatDock onOpenSettings={() => setSettingsOpen(true)} />
@@ -71,7 +82,8 @@ function AppInner() {
         providers={providers}
         onChange={refreshConfig}
       />
-      <AddPrinterModal open={addOpen} onClose={() => setAddOpen(false)} onAdded={refreshPrinters} />
+      <ConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+      <DiagnosticsModal open={diagnoseOpen} onClose={() => setDiagnoseOpen(false)} name={selectedPrinter} />
       <QueueModal open={queueOpen} onClose={() => setQueueOpen(false)} />
     </>
   )

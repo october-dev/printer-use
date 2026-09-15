@@ -14,7 +14,10 @@ import type {
   AddPrinterOpts,
   PpdEntry,
   DriverStrategy,
-  ResolvedService
+  ResolvedService,
+  PortProbe,
+  PrinterDiagnostics,
+  CommandWithHint
 } from '../shared/types'
 
 const api = {
@@ -37,7 +40,15 @@ const api = {
     findPpds: (hint?: string): Promise<PpdEntry[]> => ipcRenderer.invoke(IPC.printersFindPpds, hint),
     listDrivers: (query?: string): Promise<{ model: string; label: string }[]> =>
       ipcRenderer.invoke(IPC.printersListDrivers, query),
-    add: (opts: AddPrinterOpts): Promise<CommandResult & { hint?: string }> => ipcRenderer.invoke(IPC.printersAdd, opts)
+    add: (opts: AddPrinterOpts): Promise<CommandResult & { hint?: string }> => ipcRenderer.invoke(IPC.printersAdd, opts),
+    probe: (host: string): Promise<PortProbe[]> => ipcRenderer.invoke(IPC.printersProbe, host),
+    diagnose: (name: string): Promise<PrinterDiagnostics> => ipcRenderer.invoke(IPC.printersDiagnose, name),
+    explain: (diag: PrinterDiagnostics): Promise<{ ok: boolean; text?: string; error?: string }> =>
+      ipcRenderer.invoke(IPC.printersExplain, diag),
+    enable: (name: string): Promise<CommandWithHint> => ipcRenderer.invoke(IPC.printersEnable, name),
+    accept: (name: string): Promise<CommandWithHint> => ipcRenderer.invoke(IPC.printersAccept, name),
+    remove: (name: string): Promise<CommandWithHint> => ipcRenderer.invoke(IPC.printersRemove, name),
+    testPage: (name: string): Promise<CommandResult> => ipcRenderer.invoke(IPC.printersTestPage, name)
   },
   jobs: {
     list: (): Promise<PrintJob[]> => ipcRenderer.invoke(IPC.jobsList),

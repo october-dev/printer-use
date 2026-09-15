@@ -197,4 +197,51 @@ export interface ResolvedService {
   ip?: string
   advertisesIpp: boolean
   suggestedUri?: string
+  /** Detected make/model from the Bonjour TXT record (ty= / product=). */
+  model?: string
+  /** Page description languages the device advertises (pdl=). */
+  pdls?: string[]
+  /** True when the device advertises AirPrint (URF= present). */
+  airprint?: boolean
+}
+
+// ---- Connect / discovery UI ----
+
+export interface DeviceProbe {
+  device: DiscoveredDevice
+  resolved?: ResolvedService
+  reachable?: boolean
+  openPorts?: number[]
+  alreadyAdded?: boolean
+}
+
+// ---- Diagnostics ----
+
+export interface PortProbe {
+  port: number
+  label: string
+  open: boolean
+}
+
+export interface ReasonInfo {
+  code: string
+  label: string
+  severity: 'info' | 'warn' | 'error'
+}
+
+export interface PrinterDiagnostics {
+  name: string
+  state: PrinterState
+  accepting: boolean
+  deviceUri?: string
+  host?: string
+  reachable?: boolean
+  ports: PortProbe[]
+  reasons: ReasonInfo[]
+  jobs: number
+  summary: string
+}
+
+export interface CommandWithHint extends CommandResult {
+  hint?: string
 }

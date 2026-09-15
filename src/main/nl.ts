@@ -48,6 +48,21 @@ USER REQUEST: "${ctx.userText}"
 ${SCHEMA_DOC}`
 }
 
+/** Pull plain assistant text out of a provider's raw output (unwraps JSON envelopes). */
+export function extractPlainText(raw: string): string {
+  try {
+    const outer = JSON.parse(raw.trim())
+    if (outer && typeof outer === 'object') {
+      if (typeof outer.result === 'string') return outer.result.trim()
+      if (typeof outer.text === 'string') return outer.text.trim()
+      if (typeof outer.content === 'string') return outer.content.trim()
+    }
+  } catch {
+    /* not a JSON envelope */
+  }
+  return raw.trim()
+}
+
 /** Find balanced {...} substrings (ignoring braces inside strings). */
 function findJsonCandidates(text: string): string[] {
   const out: string[] = []

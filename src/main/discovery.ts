@@ -66,37 +66,55 @@ function preferType(a: string, b: string): string {
   return rank(a) <= rank(b) ? a : b
 }
 
-/** Resolve a Bonjour instance to host/port/IP and a suggested CUPS device URI. */
-export async function resolveService(name: string, serviceType: string, timeoutMs = 3000): Promise<ResolvedService> {
+/** Resolve a Bonjour instance to host/port/IP, TXT metadata, and a suggested URI. */
+export async function resolveService(name: string, serviceType: string, timeoutMs = 3200): Promise<ResolvedService> {
   const advertisesIpp = serviceType === '_ipp._tcp' || serviceType === '_ipps._tcp'
-  const lookup = await new Promise<{ host?: string; port?: number }>((resolve) => {
+  const lookup = await new Promise<{ host?: string; port?: number; txt: string }>((resolve) => {
     let host: string | undefined
     let port: number | undefined
+    let txt = ''
+    let settle: ReturnType<typeof setTimeout> | null = null
     const child = spawn('dns-sd', ['-L', name, serviceType, 'local.'], { env: mergedEnv() })
     const done = () => {
+      if (settle) clearTimeout(settle)
       try {
         child.kill('SIGTERM')
       } catch {
         /* noop */
       }
-      resolve({ host, port })
+      resolve({ host, port, txt })
     }
     const timer = setTimeout(done, timeoutMs)
     child.stdout.on('data', (buf: Buffer) => {
       const text = buf.toString()
+      txt += text
       const m = text.match(/can be reached at\s+(\S+):(\d+)/)
       if (m) {
         host = m[1]
         port = Number(m[2])
-        clearTimeout(timer)
-        done()
+        // Give it a beat to also print the TXT record line, then finish.
+        if (!settle) {
+          settle = setTimeout(() => {
+            clearTimeout(timer)
+            done()
+          }, 500)
+        }
       }
     })
     child.on('error', () => {
       clearTimeout(timer)
-      resolve({ host, port })
+      resolve({ host, port, txt })
     })
   })
+
+  const txtVal = (key: string): string | undefined => {
+    const m = lookup.txt.match(new RegExp(`\\b${key}=([^\\s]+(?:\\s(?![a-zA-Z0-9_]+=)[^\\s]+)*)`, 'i'))
+    return m ? m[1].trim() : undefined
+  }
+  const model = txtVal('ty') || txtVal('product')?.replace(/[()]/g, '')
+  const pdlRaw = txtVal('pdl')
+  const pdls = pdlRaw ? pdlRaw.split(',').map((s) => s.trim()).filter(Boolean) : undefined
+  const airprint = /\bURF=/i.test(lookup.txt) || (pdls?.some((p) => /urf/i.test(p)) ?? false)
 
   let ip: string | undefined
   if (lookup.host) ip = await resolveIp(lookup.host, timeoutMs)
@@ -109,7 +127,7 @@ export async function resolveService(name: string, serviceType: string, timeoutM
     else suggestedUri = `lpd://${target}/`
   }
 
-  return { host: lookup.host, port: lookup.port, ip, advertisesIpp, suggestedUri }
+  return { host: lookup.host, port: lookup.port, ip, advertisesIpp, suggestedUri, model, pdls, airprint }
 }
 
 function resolveIp(host: string, timeoutMs: number): Promise<string | undefined> {
