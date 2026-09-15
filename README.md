@@ -18,8 +18,19 @@ command that you approve before anything is sent to the printer**.
 
 A **chat column** (Cursor-style) on the right; the rest is a **visual, animated stage**
 that shows the printer, the document you selected floating above it, the resolved print
-settings as chips, and live printer state. The document animates into the printer when you
-run a job. Native macOS vibrancy, SF Pro, hairline depth — it aims to feel like a SwiftUI app.
+settings as chips, and live printer state. When you run a job the sheet feeds in and the
+printed page **emerges from the front slot, revealing its content top-first** the way a
+real printer lays down ink. Native macOS vibrancy, SF Pro, hairline depth — it aims to
+feel like a SwiftUI app.
+
+<p align="center">
+  <img src="docs/anim-printing.png" width="49%" alt="Printing — page emerging from the slot" />
+  <img src="docs/anim-done.png" width="49%" alt="Done — page ejected into the tray" />
+</p>
+
+The print animation is hand-built with **framer-motion** + an SVG slot-clip (no external
+asset), so it matches the printer exactly and is driven by the real job status rather than
+a canned playback — see `src/renderer/src/components/PrinterScene.tsx`.
 
 ---
 

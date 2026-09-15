@@ -91,6 +91,7 @@ function createWindow(): void {
   if (process.env.CFP_VIEW) params.set('view', process.env.CFP_VIEW)
   if (process.env.CFP_DEMO) params.set('demo', '1')
   if (process.env.CFP_MODAL) params.set('modal', process.env.CFP_MODAL)
+  if (process.env.CFP_PHASE) params.set('phase', process.env.CFP_PHASE)
   const search = params.toString()
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'] + (search ? `?${search}` : ''))

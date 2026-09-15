@@ -97,6 +97,8 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
     refreshConfig()
     if (DEMO) {
       seedDemo()
+      const phase = new URLSearchParams(window.location.search).get('phase') as StudioStatus | null
+      if (phase) setTimeout(() => setStatus(phase), 50)
       return
     }
     refreshPrinters()
@@ -214,23 +216,37 @@ export function StudioProvider({ children }: { children: React.ReactNode }) {
 
   const run = useCallback(async () => {
     if (!active?.resolved) return
-    if (config?.confirmBeforePrint && !window.confirm(`Send this print job?\n\n${active.resolved.preview}`)) return
+    if (!DEMO && config?.confirmBeforePrint && !window.confirm(`Send this print job?\n\n${active.resolved.preview}`)) return
     if (statusTimer.current) clearTimeout(statusTimer.current)
+
+    // Demo mode: play the print animation without a real submit, and stay ready.
+    if (DEMO) {
+      setStatus('printing')
+      statusTimer.current = setTimeout(() => {
+        setStatus('done')
+        statusTimer.current = setTimeout(() => setStatus('ready'), 2000)
+      }, 2900)
+      return
+    }
+
     setStatus('printing')
     try {
       const res = await window.api.print.submit(active.resolved)
       if (res.ok) {
-        setStatus('done')
         pushMessage({
           role: 'assistant',
           text: `Sent to ${active.resolved.applied.printer ?? 'the printer'}. ${res.stdout.trim()}`.trim()
         })
         toast({ tone: 'ok', title: 'Sent to printer', detail: res.stdout.trim() || active.resolved.preview })
         refreshJobs()
+        // Let the print/emergence animation play out before resolving to "done".
         statusTimer.current = setTimeout(() => {
-          setStatus('idle')
-          setActive(null)
-        }, 2600)
+          setStatus('done')
+          statusTimer.current = setTimeout(() => {
+            setStatus('idle')
+            setActive(null)
+          }, 1800)
+        }, 2700)
       } else {
         setStatus('error')
         pushMessage({ role: 'assistant', text: (res.stderr || res.stdout).trim() || 'Print failed.' })
