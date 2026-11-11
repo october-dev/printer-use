@@ -1,38 +1,105 @@
-# Cursor for Printers
+# printer-use
 
-**Cursor, but for your printer.** A clean, minimal desktop app that lets you drive your
-printer with plain English — powered by *your own* AI coding subscription.
+**Let your agent use your printer.** Describe a print job in plain English, and printer-use turns it into an exact `lp` command you approve before anything reaches the printer. It comes as a desktop app and a CLI, both powered by the AI subscription you already have.
 
-You bring the engine (Claude Code, OpenAI Codex, Grok, or any CLI you already pay for).
-The app never bundles a model and never stores keys. You type what you want, the engine
-resolves it to structured print options, and the app turns those into an **exact `lp`
-command that you approve before anything is sent to the printer**.
+You bring the engine (Claude Code, OpenAI Codex, Grok, or any CLI you already pay for). printer-use never bundles a model and never stores keys.
+
+```bash
+$ printer-use print report.pdf "2 copies, double-sided, black and white, pages 1-3"
+Print 2 double-sided black-and-white copies of pages 1-3 of report.pdf on Canon_PIXMA_G3000.
+
+  lp -d Canon_PIXMA_G3000 -n 2 -o sides=two-sided-long-edge -o print-color-mode=monochrome -o page-ranges=1-3 report.pdf
+
+Print this? [y/N]
+```
 
 <p align="center">
-  <img src="docs/studio-demo.png" width="90%" alt="Cursor for Printers — chat on the right, visual printer stage on the left" />
+  <img src="docs/studio-demo.png" width="90%" alt="printer-use desktop app: chat on the right, visual printer stage on the left" />
 </p>
 <p align="center">
   <img src="docs/studio-demo-light.png" width="49%" alt="Light theme" />
-  <img src="docs/onboarding.png" width="49%" alt="Onboarding — bring your own AI engine" />
+  <img src="docs/onboarding.png" width="49%" alt="Onboarding: bring your own AI engine" />
 </p>
 
-A **chat column** (Cursor-style) on the right; the rest is a **visual, animated stage**
-that shows the printer, the document you selected floating above it, the resolved print
-settings as chips, and live printer state. When you run a job the sheet feeds in and the
-printed page **emerges from the front slot, revealing its content top-first** the way a
-real printer lays down ink. Native macOS vibrancy, SF Pro, hairline depth — it aims to
-feel like a SwiftUI app.
+## Two ways to use it
+
+| | |
+| --- | --- |
+| **CLI** | `printer-use` in any terminal. Agents call it with `--json` and get structured output back. Nothing prints without `--yes` or a typed confirmation. |
+| **Desktop app** | A chat column on the right, and a visual, animated stage showing the printer, your document, the resolved settings and live printer state. |
+
+Both share the same core (`src/main`): CUPS, network discovery, diagnostics, the AI translation step and the `lp` builder.
+
+## CLI
+
+```bash
+npm install
+npm run build:cli
+npm link            # puts `printer-use` on your PATH
+```
+
+| Command | What it does |
+| --- | --- |
+| `printer-use print <file...> ["request"]` | Translate a request into an `lp` command, confirm, print |
+| `printer-use printers` | List CUPS printers (`*` marks the default) |
+| `printer-use jobs` | List active print jobs |
+| `printer-use cancel <job-id>` | Cancel a job |
+| `printer-use default <printer>` | Set your default printer (per user, no `sudo`) |
+| `printer-use discover` | Find printers on the network over Bonjour/mDNS |
+| `printer-use diagnose <printer>` | Reachability, CUPS state reasons in plain English, queue depth |
+| `printer-use engines` | Show which AI engines are installed |
+
+| Option | |
+| --- | --- |
+| `-p, --printer <name>` | Target printer (overrides the engine's choice) |
+| `-e, --engine <id>` | `claude-code`, `codex` or `grok`. Defaults to the first one installed, or `$PRINTER_USE_ENGINE` |
+| `-n, --dry-run` | Show the resolved command without printing |
+| `-y, --yes` | Print without asking |
+| `--json` | Machine-readable output for agents |
+
+Leave out the request (`printer-use print report.pdf`) to print with the printer's defaults, with no AI call at all.
+
+### Using it from an agent
+
+Tell your agent to preview first and print only after you agree:
+
+```bash
+printer-use print slides.pdf "4 pages per sheet, landscape" --dry-run --json
+```
+
+```json
+{
+  "ok": true,
+  "dryRun": true,
+  "summary": "Print slides.pdf landscape with 4 pages per sheet on Canon_PIXMA_G3000.",
+  "command": "lp -d Canon_PIXMA_G3000 -o orientation-requested=4 -o number-up=4 slides.pdf",
+  "argv": ["lp", "-d", "Canon_PIXMA_G3000", "-o", "orientation-requested=4", "-o", "number-up=4", "slides.pdf"],
+  "applied": { "printer": "Canon_PIXMA_G3000", "orientation": "landscape", "numberUp": 4 },
+  "warnings": []
+}
+```
+
+In `--json` mode without `--yes`, printer-use refuses to print and returns the plan instead, so an agent can never print by accident.
+
+## Desktop app
+
+```bash
+npm install      # installs deps and downloads the Electron runtime
+npm run dev      # launches the app with hot reload
+```
+
+When you run a job, the sheet feeds in and the printed page **emerges from the front slot, revealing its content top first**, the way a real printer lays down ink. The animation is hand-built with framer-motion and an SVG slot clip, and it follows the real job status rather than a canned playback (see `src/renderer/src/components/PrinterScene.tsx`). Native macOS vibrancy, SF Pro, light and dark.
 
 <p align="center">
-  <img src="docs/anim-printing.png" width="49%" alt="Printing — page emerging from the slot" />
-  <img src="docs/anim-done.png" width="49%" alt="Done — page ejected into the tray" />
+  <img src="docs/anim-printing.png" width="49%" alt="Printing: page emerging from the slot" />
+  <img src="docs/anim-done.png" width="49%" alt="Done: page ejected into the tray" />
 </p>
 
-The print animation is hand-built with **framer-motion** + an SVG slot-clip (no external
-asset), so it matches the printer exactly and is driven by the real job status rather than
-a canned playback — see `src/renderer/src/components/PrinterScene.tsx`.
-
----
+- **Onboarding** detects installed engines (`claude`, `codex`, `grok`) on your `PATH`, or lets you add any custom CLI.
+- **Chat**: attach a file, describe the job, and get back a summary, the exact `lp` line and a Run button.
+- **Printer switcher** in the toolbar, which also sets your default.
+- **Add a printer** through Bonjour/mDNS discovery for AirPrint devices, or by IP for driver-only printers.
+- **Job queue** across all printers, with cancel.
 
 ## Why this design
 
@@ -45,7 +112,7 @@ natural language  →  AI engine  →  structured options (JSON)  →  determini
 
 - The AI is only allowed to produce a **whitelisted set of options** (copies, sides,
   color, quality, media, page ranges, pages-per-sheet, collate, orientation, fit-to-page).
-- The app **deterministically** maps those to an `lp` invocation — raw model text is never
+- printer-use **deterministically** maps those to an `lp` invocation — raw model text is never
   executed, and unknown fields are dropped with a warning.
 - The **exact command is shown** before it runs, e.g.:
 
@@ -55,22 +122,6 @@ natural language  →  AI engine  →  structured options (JSON)  →  determini
 
 - Every command is run with an explicit `argv` array (never a shell string), so there is
   no command-injection surface.
-
-## Features (v1)
-
-- **Onboarding** — auto-detects installed engines (`claude`, `codex`, `grok`) on your
-  `PATH`, or add any custom CLI. Test the connection in one click.
-- **Chat** — a Cursor-style conversation: attach a file, describe the job, and the engine
-  replies with the resolved command (summary + exact `lp` line + a Run button).
-- **Visual stage** — the printer, the selected document, the resolved settings (copies,
-  duplex, color, pages…) and live state, laid out and animated. Run a job and the sheet
-  feeds into the printer while the status light pulses.
-- **Printer switcher** — pick your printer from the toolbar; that also sets your default
-  (per-user, no admin needed).
-- **Add a printer** — Bonjour/mDNS discovery for AirPrint devices, plus manual add-by-IP
-  for driver-only printers. Driver selection is done correctly (see below).
-- **Job queue** — see active jobs across all printers and cancel them; auto-refreshes.
-- **Native feel** — macOS vibrancy, light + dark, SF Pro, hairline depth.
 
 ## How printing works (macOS / CUPS)
 
@@ -124,22 +175,16 @@ Not every printer speaks AirPrint. The app picks the right driver strategy:
 > Adding a queue may require admin rights; if `lpadmin` reports it's not authorized, the
 > app shows you the exact `sudo lpadmin …` line to run in Terminal.
 
-## Setup
+## Development
 
-Requirements: macOS, Node ≥ 20 (built/tested on Node 26), and at least one AI CLI on your
-`PATH` (`claude`, `codex`, or `grok`) — or bring your own.
-
-```bash
-npm install      # installs deps + downloads the Electron runtime
-npm run dev      # launches the app (hot-reload)
-```
-
-Other scripts:
+Requirements: macOS, Node 20 or newer, and at least one AI CLI on your `PATH` (`claude`, `codex` or `grok`), or bring your own.
 
 ```bash
+npm run dev        # desktop app with hot reload
 npm run build      # bundle main / preload / renderer into out/
 npm run start      # preview the production build
 npm run typecheck  # type-check both the node and web sides
+npm run build:cli  # bundle the CLI into out/cli/printer-use.mjs
 npm run package    # build an unpacked .app (electron-builder --dir)
 ```
 
@@ -161,6 +206,7 @@ through the CLI you chose, using *your* authenticated subscription.
 
 ```
 src/
+  cli/               the printer-use CLI (no Electron)
   shared/            types + IPC channel names + provider presets (imported by all sides)
   main/              Electron main process
     index.ts         window, theme, IPC handlers
@@ -175,7 +221,7 @@ src/
   renderer/          React + Tailwind + framer-motion UI
     studio.tsx       shared state controller (files, printers, chat, status) via context
     components/
-      ChatDock.tsx     the Cursor-style chat column
+      ChatDock.tsx     the chat column
       Stage.tsx        the visual stage (toolbar, scene, settings chips, state)
       PrinterScene.tsx animated SVG printer + document + printing animation
       Onboarding · Settings · AddPrinterModal · QueueModal · toast · ui
@@ -194,14 +240,10 @@ node /tmp/smoke.mjs raw.json
 # → PASS ✓
 ```
 
-## Status & notes
+## Security
 
-- v1 is runnable and the full NL→command→approve→execute path is verified end-to-end
-  against the real Claude Code CLI.
-- Physical printing is intentionally gated behind your explicit **Run** click.
-- A live physical print test against the Canon G3000 needs to run on a machine on the same
-  LAN as the printer (a printer at `192.168.1.16` is only reachable from that home network).
+printer-use never runs model output. The model can only fill in a fixed list of options, the command is built from those options in code, and every command runs as an argv array with no shell. See [SECURITY.md](SECURITY.md) to report a problem.
 
 ## License
 
-MIT
+[MIT](LICENSE)

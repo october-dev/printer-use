@@ -1,7 +1,7 @@
 {
-  "name": "cursor-for-printers",
+  "name": "printer-use",
   "version": "0.1.0",
-  "description": "Cursor, but for your printer — drive CUPS with natural language using your own AI coding subscription.",
+  "description": "Let your agent use your printer. Plain-English printing over CUPS, as a desktop app and a CLI, powered by the AI subscription you already have.",
   "author": "October",
   "license": "MIT",
   "main": "./out/main/index.js",
@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "build:cli": "esbuild src/cli/index.ts --bundle --platform=node --format=esm --target=node20 --outfile=out/cli/printer-use.mjs --banner:js=\"#!/usr/bin/env node\"",
     "start": "electron-vite preview",
     "preview": "electron-vite preview",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
@@ -37,8 +38,8 @@
     "vite": "^5.4.11"
   },
   "build": {
-    "appId": "dev.october.cursor-for-printers",
-    "productName": "Cursor for Printers",
+    "appId": "dev.october.printer-use",
+    "productName": "Printer Use",
     "files": [
       "out/**/*",
       "resources/**/*"
@@ -47,5 +48,27 @@
       "category": "public.app-category.utilities",
       "target": "dir"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/october-dev/printer-use.git"
+  },
+  "homepage": "https://github.com/october-dev/printer-use#readme",
+  "bugs": {
+    "url": "https://github.com/october-dev/printer-use/issues"
+  },
+  "keywords": [
+    "printer",
+    "cups",
+    "lp",
+    "agent",
+    "claude-code",
+    "codex",
+    "cli",
+    "electron",
+    "macos"
+  ],
+  "bin": {
+    "printer-use": "out/cli/printer-use.mjs"
   }
 }

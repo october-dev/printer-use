@@ -69,7 +69,7 @@ export function ChatDock({ onOpenSettings }: { onOpenSettings: () => void }) {
         <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-accent text-white shadow-sm shadow-accent/30">
           <PrinterIcon size={13} />
         </div>
-        <span className="text-[13px] font-semibold tracking-tight">Cursor for Printers</span>
+        <span className="text-[13px] font-semibold tracking-tight">Printer Use</span>
         <button
           onClick={onOpenSettings}
           className="no-drag ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted transition hover:bg-faint/10 hover:text-ink"

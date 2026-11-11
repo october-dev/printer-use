@@ -37,7 +37,7 @@ export function Onboarding({
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-[16px] bg-accent text-white shadow-lg shadow-accent/30">
               <PrinterIcon size={22} />
             </div>
-            <h1 className="text-[24px] font-semibold tracking-tight">Cursor, for your printer.</h1>
+            <h1 className="text-[24px] font-semibold tracking-tight">Your printer, in plain English.</h1>
             <p className="mt-2 max-w-[360px] text-[13px] leading-relaxed text-muted">
               Drive your printer with plain English. Bring your own AI engine — nothing bundled, no keys stored.
             </p>

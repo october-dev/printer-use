@@ -160,7 +160,7 @@ export async function printTestPage(name: string): Promise<CommandResult> {
   if (!NAME_RE.test(name)) return { ok: false, stdout: '', stderr: `Refused invalid printer "${name}".`, code: 1, argv: ['lp'] }
   const file = join(os.tmpdir(), `cfp-test-${Date.now()}.txt`)
   const body = [
-    '  Cursor for Printers — test page',
+    '  Printer Use — test page',
     '  ================================',
     '',
     `  Printer : ${name}`,
