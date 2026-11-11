@@ -1,7 +1,7 @@
 {
   "name": "printer-use",
-  "version": "0.1.0",
-  "description": "Let your agent use your printer. Plain-English printing over CUPS, as a desktop app and a CLI, powered by the AI subscription you already have.",
+  "version": "0.2.0",
+  "description": "Printer setup, repair and printing for any AI agent, with guardrails. MCP server, CLI and desktop app.",
   "author": "October",
   "license": "MIT",
   "main": "./out/main/index.js",
@@ -18,8 +18,10 @@
     "package": "electron-vite build && electron-builder --dir"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "framer-motion": "^11.18.2",
-    "lucide-react": "^0.454.0"
+    "lucide-react": "^0.454.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
@@ -66,7 +68,9 @@
     "codex",
     "cli",
     "electron",
-    "macos"
+    "macos",
+    "mcp",
+    "mcp-server"
   ],
   "bin": {
     "printer-use": "out/cli/printer-use.mjs"

@@ -1,87 +1,114 @@
 # printer-use
 
-**Let your agent use your printer.** Describe a print job in plain English, and printer-use turns it into an exact `lp` command you approve before anything reaches the printer. It comes as a desktop app and a CLI, both powered by the AI subscription you already have.
+**Printer setup, repair and printing for any AI agent, with guardrails.**
 
-You bring the engine (Claude Code, OpenAI Codex, Grok, or any CLI you already pay for). printer-use never bundles a model and never stores keys.
+Adding a printer, picking the right driver and working out why it says "stopped" is where people get stuck, and where agents guess. printer-use gives your agent tools that get it right, and makes sure nothing prints or changes without you saying yes.
+
+Use it from Claude, Codex or any agent as an **MCP server**, from a terminal as a **CLI**, or as a **desktop app**.
 
 ```bash
-$ printer-use print report.pdf "2 copies, double-sided, black and white, pages 1-3"
-Print 2 double-sided black-and-white copies of pages 1-3 of report.pdf on Canon_PIXMA_G3000.
+$ printer-use fix Canon_PIXMA_G3000
+✓ Resumed the printer (cupsenable)
 
-  lp -d Canon_PIXMA_G3000 -n 2 -o sides=two-sided-long-edge -o print-color-mode=monochrome -o page-ranges=1-3 report.pdf
+Needs a person:
+  • Out of paper
 
-Print this? [y/N]
+Now: idle, 0 job(s) queued.
 ```
 
-<p align="center">
-  <img src="docs/studio-demo.png" width="90%" alt="printer-use desktop app: chat on the right, visual printer stage on the left" />
-</p>
-<p align="center">
-  <img src="docs/studio-demo-light.png" width="49%" alt="Light theme" />
-  <img src="docs/onboarding.png" width="49%" alt="Onboarding: bring your own AI engine" />
-</p>
+## What it does
 
-## Two ways to use it
+- **Sets up printers properly.** Give it an IP address and it checks which protocol the printer actually speaks. It only uses driverless IPP when the printer supports it, and otherwise finds the matching vendor driver. A common agent mistake is forcing IPP on printers that don't speak it.
+- **Fixes what software can fix.** It resumes stopped printers, turns job acceptance back on and clears stuck jobs. Problems a person has to deal with, like paper, ink, jams or a printer that's off, it reports in plain English.
+- **Prints exactly what was asked.** Options come from a fixed list (copies, double-sided, color, quality, orientation, paper size, pages, pages per sheet, fit, collate). Anything invalid is rejected, not guessed at. The command is built in code and run without a shell.
+- **Asks first.** Printing, adding a printer and fixes always show the exact command and wait for a yes. Agents get a separate preview step.
 
-| | |
-| --- | --- |
-| **CLI** | `printer-use` in any terminal. Agents call it with `--json` and get structured output back. Nothing prints without `--yes` or a typed confirmation. |
-| **Desktop app** | A chat column on the right, and a visual, animated stage showing the printer, your document, the resolved settings and live printer state. |
+## Use it with your agent (MCP)
 
-Both share the same core (`src/main`): CUPS, network discovery, diagnostics, the AI translation step and the `lp` builder.
+```bash
+git clone https://github.com/october-dev/printer-use.git
+cd printer-use && npm install && npm run build:cli && npm link
+```
+
+**Claude Code**
+
+```bash
+claude mcp add printer-use -- printer-use mcp
+```
+
+**Codex** (`~/.codex/config.toml`)
+
+```toml
+[mcp_servers.printer-use]
+command = "printer-use"
+args = ["mcp"]
+```
+
+**Claude desktop app** (`claude_desktop_config.json`)
+
+```json
+{ "mcpServers": { "printer-use": { "command": "printer-use", "args": ["mcp"] } } }
+```
+
+Then just ask: *"set up the printer at 192.168.1.20"*, *"why won't my printer print?"*, *"print this double-sided."*
+
+| Tool | Changes anything? | What it does |
+| --- | --- | --- |
+| `list_printers` | No | Printers on this computer, their state and the default |
+| `list_jobs` | No | Print jobs that haven't finished |
+| `discover_printers` | No | Printers on the network, including ones not set up yet |
+| `diagnose_printer` | No | Reachability, error reasons in plain English, queue depth |
+| `plan_printer_setup` | No | The right protocol, driver and exact `lpadmin` command for a printer's IP |
+| `preview_print` | No | The exact `lp` command for a job |
+| `set_up_printer` | Yes | Adds the printer from the plan |
+| `fix_printer` | Yes | Resumes, re-enables, optionally clears stuck jobs |
+| `print_file` | Yes | Prints |
+| `print_test_page` | Yes | Prints a one-page test sheet |
+| `cancel_job` | Yes | Cancels a job |
+| `set_default_printer` | Yes | Sets your default printer |
+
+Tools that change something are marked destructive, so your agent app asks you before running them.
 
 ## CLI
 
+The same steps in a terminal. After `npm link` above:
+
 ```bash
-npm install
-npm run build:cli
-npm link            # puts `printer-use` on your PATH
+printer-use setup 192.168.1.20 --model "Canon G3000"   # add a printer with the right driver
+printer-use fix Canon_PIXMA_G3000 --clear-queue        # resume, re-enable, clear stuck jobs
+printer-use diagnose Canon_PIXMA_G3000                 # what's wrong, in plain English
+printer-use print report.pdf --copies 2 --duplex --mono --pages 1-3
+printer-use print report.pdf "2 copies, double-sided, black and white"
 ```
 
 | Command | What it does |
 | --- | --- |
-| `printer-use print <file...> ["request"]` | Translate a request into an `lp` command, confirm, print |
-| `printer-use printers` | List CUPS printers (`*` marks the default) |
-| `printer-use jobs` | List active print jobs |
-| `printer-use cancel <job-id>` | Cancel a job |
-| `printer-use default <printer>` | Set your default printer (per user, no `sudo`) |
-| `printer-use discover` | Find printers on the network over Bonjour/mDNS |
-| `printer-use diagnose <printer>` | Reachability, CUPS state reasons in plain English, queue depth |
-| `printer-use engines` | Show which AI engines are installed |
+| `print <file...> [options]` | Print with explicit options |
+| `print <file...> "request"` | Describe the job; your AI engine picks the options |
+| `setup <ip-or-host>` | Add a network printer with the right protocol and driver |
+| `fix <printer>` | Apply software fixes and report what a person must fix |
+| `diagnose <printer>` | Reachability, error reasons, queue depth |
+| `test-page <printer>` | Print a one-page test sheet |
+| `printers` / `jobs` | List printers / active jobs |
+| `cancel <job-id>` | Cancel a job |
+| `default <printer>` | Set your default printer (per user, no `sudo`) |
+| `discover` | Find printers on the network |
+| `engines` | Show which AI engines are installed |
+| `mcp` | Run as an MCP server |
 
-| Option | |
-| --- | --- |
-| `-p, --printer <name>` | Target printer (overrides the engine's choice) |
-| `-e, --engine <id>` | `claude-code`, `codex` or `grok`. Defaults to the first one installed, or `$PRINTER_USE_ENGINE` |
-| `-n, --dry-run` | Show the resolved command without printing |
-| `-y, --yes` | Print without asking |
-| `--json` | Machine-readable output for agents |
+**Print options:** `--copies <n>`, `--duplex` / `--duplex-short`, `--mono` / `--color`, `--quality draft|normal|high`, `--landscape`, `--media A4|Letter|…`, `--pages 1-3,7`, `--per-sheet 1|2|4|6|9|16`, `--fit`, `--collate`.
 
-Leave out the request (`printer-use print report.pdf`) to print with the printer's defaults, with no AI call at all.
+**Everywhere:** `-p, --printer`, `-n, --dry-run` (show the command, change nothing), `-y, --yes` (don't ask), `--json` (structured output). In `--json` mode without `--yes`, printer-use refuses to act and returns the plan instead.
 
-### Using it from an agent
+A plain-English request (`print report.pdf "4 per page, landscape"`) goes to the AI CLI you already have (Claude Code, Codex or Grok, or set `$PRINTER_USE_ENGINE`). Flags you add win over the engine's reading.
 
-Tell your agent to preview first and print only after you agree:
-
-```bash
-printer-use print slides.pdf "4 pages per sheet, landscape" --dry-run --json
-```
-
-```json
-{
-  "ok": true,
-  "dryRun": true,
-  "summary": "Print slides.pdf landscape with 4 pages per sheet on Canon_PIXMA_G3000.",
-  "command": "lp -d Canon_PIXMA_G3000 -o orientation-requested=4 -o number-up=4 slides.pdf",
-  "argv": ["lp", "-d", "Canon_PIXMA_G3000", "-o", "orientation-requested=4", "-o", "number-up=4", "slides.pdf"],
-  "applied": { "printer": "Canon_PIXMA_G3000", "orientation": "landscape", "numberUp": 4 },
-  "warnings": []
-}
-```
-
-In `--json` mode without `--yes`, printer-use refuses to print and returns the plan instead, so an agent can never print by accident.
+<p align="center">
+  <img src="docs/studio-demo.png" width="90%" alt="printer-use desktop app: chat on the right, visual printer stage on the left" />
+</p>
 
 ## Desktop app
+
+For people who would rather click than type: a chat column on the right and an animated printer stage showing your document, the settings and live printer state.
 
 ```bash
 npm install      # installs deps and downloads the Electron runtime
@@ -206,7 +233,8 @@ through the CLI you chose, using *your* authenticated subscription.
 
 ```
 src/
-  cli/               the printer-use CLI (no Electron)
+  cli/               the printer-use CLI and MCP server (no Electron)
+  core/              setup, fix and print planning shared by the CLI and MCP server
   shared/            types + IPC channel names + provider presets (imported by all sides)
   main/              Electron main process
     index.ts         window, theme, IPC handlers

@@ -16,39 +16,79 @@ import { listPrinters, listJobs, cancelJob, submit, setDefaultPrinter } from '..
 import { discoverPrinters } from '../main/discovery'
 import { diagnose } from '../main/diagnostics'
 import { translate } from '../main/nl'
-import { buildLpCommand } from '../main/lp-builder'
-import type { Provider, ResolvedCommand } from '../shared/types'
+import { printTestPage } from '../main/diagnostics'
+import { planPrint, planSetup, runSetup, fixPrinter } from '../core/actions'
+import type { Provider, ResolvedCommand, PrintOptions } from '../shared/types'
 
-const VERSION = '0.1.0'
+const VERSION = '0.2.0'
 
-const HELP = `printer-use ${VERSION}: let your agent use your printer.
+const HELP = `printer-use ${VERSION}: printer setup, repair and printing, with guardrails.
 
 Usage
-  printer-use print <file...> ["request"]   Translate a request into an lp command, confirm, print
-  printer-use printers                      List CUPS printers
+  printer-use print <file...> [options]     Print with explicit options (no AI involved)
+  printer-use print <file...> "request"     Or describe the job; your AI engine picks the options
+  printer-use setup <ip-or-host>            Add a network printer with the right protocol and driver
+  printer-use fix <printer>                 Resume, re-enable, and report what a person must fix
+  printer-use diagnose <printer>            Reachability, CUPS state reasons, queue depth
+  printer-use test-page <printer>           Print a one-page test sheet
+  printer-use printers                      List printers (* marks the default)
   printer-use jobs                          List active print jobs
   printer-use cancel <job-id>               Cancel a job (e.g. Canon_G3000-42)
   printer-use default <printer>             Set your default printer (per user, no sudo)
   printer-use discover                      Find printers on the network (Bonjour/mDNS)
-  printer-use diagnose <printer>            Reachability, CUPS state reasons, queue depth
   printer-use engines                       Show which AI engines are installed
+  printer-use mcp                           Run as an MCP server over stdio
 
-Options
-  -p, --printer <name>   Target printer (overrides the engine's choice)
+Print options
+      --copies <n>        1 to 999
+      --duplex            Double-sided (long edge). --duplex-short for short edge
+      --mono | --color    Black and white, or color
+      --quality <q>       draft | normal | high
+      --landscape         Landscape orientation
+      --media <size>      A4, Letter, Legal, …
+      --pages <ranges>    e.g. 1-3,7
+      --per-sheet <n>     Pages per sheet: 1, 2, 4, 6, 9, 16
+      --fit               Fit to page
+      --collate           Collate copies
+
+Setup and fix options
+      --model <name>      Printer make and model, used to match a driver (setup)
+      --name <queue>      Queue name to create (setup)
+      --clear-queue       Also cancel stuck jobs (fix)
+
+General options
+  -p, --printer <name>   Target printer
   -e, --engine <id>      claude-code | codex | grok (default: first installed, or $PRINTER_USE_ENGINE)
-  -n, --dry-run          Show the resolved command, do not print
-  -y, --yes              Print without asking for confirmation
+  -n, --dry-run          Show the command, change nothing
+  -y, --yes              Do it without asking
       --json             Machine-readable output (for agents)
   -h, --help             Show this help
   -v, --version          Show the version
 
 Examples
-  printer-use print report.pdf "2 copies, double-sided, black and white, pages 1-3"
-  printer-use print slides.pdf "4 per page, landscape" --dry-run --json
+  printer-use print report.pdf --copies 2 --duplex --mono --pages 1-3
+  printer-use print report.pdf "2 copies, double-sided, black and white"
+  printer-use setup 192.168.1.20 --model "Canon G3000"
+  printer-use fix Canon_PIXMA_G3000 --clear-queue
 `
 
 type Flags = {
   printer?: string
+  copies?: string
+  duplex?: boolean
+  'duplex-short'?: boolean
+  mono?: boolean
+  color?: boolean
+  quality?: string
+  landscape?: boolean
+  media?: string
+  pages?: string
+  'per-sheet'?: string
+  fit?: boolean
+  collate?: boolean
+  model?: string
+  name?: string
+  'clear-queue'?: boolean
   engine?: string
   'dry-run'?: boolean
   yes?: boolean
@@ -81,6 +121,24 @@ async function pickEngine(id: string | undefined, json: boolean): Promise<Provid
   return first
 }
 
+/** Print options given directly on the command line. Undefined when none were given. */
+function flagOptions(f: Flags): PrintOptions | undefined {
+  const o: PrintOptions = {}
+  if (f.copies != null) o.copies = Number(f.copies)
+  if (f.duplex) o.sides = 'two-sided-long-edge'
+  if (f['duplex-short']) o.sides = 'two-sided-short-edge'
+  if (f.mono) o.color = 'monochrome'
+  if (f.color) o.color = 'color'
+  if (f.quality) o.quality = f.quality as PrintOptions['quality']
+  if (f.landscape) o.orientation = 'landscape'
+  if (f.media) o.media = f.media
+  if (f.pages) o.pageRanges = f.pages
+  if (f['per-sheet'] != null) o.numberUp = Number(f['per-sheet'])
+  if (f.fit) o.fitToPage = true
+  if (f.collate) o.collate = true
+  return Object.keys(o).length ? o : undefined
+}
+
 async function confirm(question: string): Promise<boolean> {
   if (!process.stdin.isTTY) return false
   const rl = createInterface({ input: process.stdin, output: process.stdout })
@@ -108,7 +166,7 @@ async function cmdPrint(positionals: string[], flags: Flags): Promise<void> {
   }
 
   let resolved: ResolvedCommand
-  let summary = 'Print with default settings.'
+  let summary = 'Print with the options given.'
   let notes: string | undefined
   let engineId: string | undefined
 
@@ -121,8 +179,18 @@ async function cmdPrint(positionals: string[], flags: Flags): Promise<void> {
     resolved = result.resolved
     summary = result.interpretation?.summary ?? summary
     notes = result.interpretation?.notes
+    // Explicit flags win over the engine's reading of the request.
+    const explicit = flagOptions(flags)
+    if (explicit) {
+      const plan = await planPrint(files, { ...resolved.applied, ...explicit })
+      if (!plan.ok || !plan.resolved) fail(json, plan.error ?? 'Could not build the command.')
+      resolved = plan.resolved
+    }
   } else {
-    resolved = buildLpCommand({ printer: flags.printer ?? defaultPrinter }, files)
+    const plan = await planPrint(files, { ...flagOptions(flags), printer: flags.printer })
+    if (!plan.ok || !plan.resolved) fail(json, plan.error ?? 'Could not build the command.')
+    resolved = plan.resolved
+    summary = 'Print with the options given.'
   }
 
   const plan = { summary, notes, engine: engineId, command: resolved.preview, argv: [resolved.bin, ...resolved.args], applied: resolved.applied, warnings: resolved.warnings }
@@ -148,6 +216,50 @@ async function cmdPrint(positionals: string[], flags: Flags): Promise<void> {
   out(json, { ok: true, ...plan, output: res.stdout.trim() }, res.stdout.trim() || 'Sent to the printer.')
 }
 
+async function cmdSetup(positionals: string[], flags: Flags): Promise<void> {
+  const json = !!flags.json
+  if (!positionals[0]) fail(json, 'setup needs an IP address or hostname, e.g. `printer-use setup 192.168.1.20 --model "Canon G3000"`.')
+  if (!json) process.stderr.write(`Checking ${positionals[0]}…\n`)
+  const plan = await planSetup({ host: positionals[0], model: flags.model, name: flags.name })
+  if (!plan.ok) fail(json, plan.error ?? 'Could not plan the setup.', { openPorts: plan.openPorts })
+  const text = [plan.reason ?? '', '', `  ${plan.command}`].join('\n')
+  if (flags['dry-run']) return out(json, { dryRun: true, ...plan }, text)
+  if (!flags.yes) {
+    if (json || !process.stdin.isTTY) fail(json, 'Refusing to add a printer without confirmation. Re-run with --yes, or use --dry-run.', { ...plan })
+    process.stdout.write(text + '\n')
+    if (!(await confirm('Add this printer? [y/N] '))) return out(false, null, 'Cancelled. Nothing was changed.')
+  }
+  const res = await runSetup(plan)
+  if (!res.ok) fail(json, [res.error, (res as { hint?: string }).hint].filter(Boolean).join('\n\n'), res)
+  out(json, res, `Added ${plan.name}. Try \`printer-use test-page ${plan.name}\`.`)
+}
+
+async function cmdFix(positionals: string[], flags: Flags): Promise<void> {
+  const json = !!flags.json
+  const name = positionals[0]
+  if (!name) fail(json, 'fix needs a printer name. Run `printer-use printers` to see them.')
+  if (flags['dry-run']) {
+    const { diagnose } = await import('../main/diagnostics')
+    const d = await diagnose(name)
+    const would = [
+      ...(flags['clear-queue'] && d.jobs ? [`clear ${d.jobs} job(s)`] : []),
+      ...(d.state === 'stopped' ? ['resume the printer'] : []),
+      ...(!d.accepting ? ['turn job acceptance back on'] : [])
+    ]
+    return out(json, { dryRun: true, wouldDo: would, diagnostics: d }, would.length ? `Would ${would.join(', ')}.` : 'Nothing to fix in software.')
+  }
+  const res = await fixPrinter(name, { clearQueue: flags['clear-queue'] })
+  const lines = [
+    ...(res.actions.length ? res.actions.map((a) => `${a.ok ? '✓' : '✗'} ${a.action}${a.detail ? `: ${a.detail}` : ''}${a.hint ? `\n${a.hint}` : ''}`) : ['Nothing to fix in software.']),
+    ...(res.remaining.length ? ['', 'Needs a person:', ...res.remaining.map((r) => `  • ${r}`)] : []),
+    '',
+    `Now: ${res.after.state}${res.after.accepting ? '' : ', not accepting jobs'}, ${res.after.jobs} job(s) queued.`
+  ]
+  if (json) return out(true, res, '')
+  out(false, null, lines.join('\n'))
+  if (!res.ok) process.exit(1)
+}
+
 function renderPlan(plan: { summary: string; notes?: string; command: string; warnings: string[] }): string {
   const lines = [plan.summary, '', `  ${plan.command}`]
   if (plan.notes) lines.push('', `Note: ${plan.notes}`)
@@ -162,6 +274,21 @@ async function main(): Promise<void> {
       allowPositionals: true,
       options: {
         printer: { type: 'string', short: 'p' },
+        copies: { type: 'string' },
+        duplex: { type: 'boolean' },
+        'duplex-short': { type: 'boolean' },
+        mono: { type: 'boolean' },
+        color: { type: 'boolean' },
+        quality: { type: 'string' },
+        landscape: { type: 'boolean' },
+        media: { type: 'string' },
+        pages: { type: 'string' },
+        'per-sheet': { type: 'string' },
+        fit: { type: 'boolean' },
+        collate: { type: 'boolean' },
+        model: { type: 'string' },
+        name: { type: 'string' },
+        'clear-queue': { type: 'boolean' },
         engine: { type: 'string', short: 'e' },
         'dry-run': { type: 'boolean', short: 'n' },
         yes: { type: 'boolean', short: 'y' },
@@ -183,6 +310,23 @@ async function main(): Promise<void> {
   switch (command) {
     case 'print':
       return cmdPrint(rest, flags)
+    case 'mcp': {
+      const { startMcpServer } = await import('./mcp')
+      return startMcpServer(VERSION)
+    }
+    case 'setup':
+      return cmdSetup(rest, flags)
+    case 'fix':
+      return cmdFix(rest, flags)
+    case 'test-page': {
+      if (!rest[0]) fail(json, 'test-page needs a printer name.')
+      if (!flags.yes && !(await confirm(`Print a test page on ${rest[0]}? [y/N] `))) {
+        fail(json, 'Not confirmed. Re-run with --yes to print the test page.')
+      }
+      const res = await printTestPage(rest[0])
+      if (!res.ok) fail(json, res.stderr.trim() || 'lp failed')
+      return out(json, { ok: true, printer: rest[0] }, `Test page sent to ${rest[0]}.`)
+    }
     case 'printers': {
       const printers = await listPrinters()
       const text = printers.length
