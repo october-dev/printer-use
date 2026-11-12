@@ -1,4 +1,25 @@
-# printer-use
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <img src="assets/logo-light.svg" alt="printer-use" width="560">
+  </picture>
+  <br>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/tagline-dark.svg">
+    <img src="assets/tagline-light.svg" alt="Let your agent use your printer." width="520">
+  </picture>
+</div>
+
+---
+
+<p>
+  <a href="#use-it-with-your-agent-mcp"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/button-start-dark.svg"><img src="assets/button-start-light.svg" alt="Quick start" height="40" align="top"></picture></a>
+  <a href="#cli"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/button-cli-dark.svg"><img src="assets/button-cli-light.svg" alt="CLI" height="40" align="top"></picture></a>
+  <a href="#desktop-app"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/button-app-dark.svg"><img src="assets/button-app-light.svg" alt="Desktop app" height="40" align="top"></picture></a>
+  <a href="#what-it-does"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/callout-dark.svg"><img src="assets/callout-light.svg" alt="Nothing prints or changes until you say yes." height="40" align="top"></picture></a>
+</p>
+
+---
 
 **Printer setup, repair and printing for any AI agent, with guardrails.**
 
